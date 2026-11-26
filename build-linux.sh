@@ -64,11 +64,11 @@ else
   RUN=()
 fi
 # Lake writes a .setup.json per module listing its whole import closure: about 4.6 MB each
-# here, 92 GB after 20k modules. They are read once when Lean starts on a module, so delete them
-# after that; this does not make Lake rebuild anything.
-( while true; do find "$FORK/.lake/build/ir" -name '*.setup.json' -mmin +2 -delete 2>/dev/null; sleep 60; done ) &
+# here, 92 GB after 20k modules. Remove one only after its corresponding module trace is
+# newer; elapsed time alone does not establish that a running module has completed.
+( while true; do python3 -B "$HERE/tools/cleanup_setup.py" --build-dir "$FORK/.lake/build"; sleep 60; done ) >> "$WORK/setup-cleanup.log" 2>&1 &
 CLEANER=$!
-trap 'kill $CLEANER 2>/dev/null' EXIT
+trap 'kill "$CLEANER" 2>/dev/null; wait "$CLEANER" 2>/dev/null || true' EXIT
 start=$(date +%s)
 set +e
 "${RUN[@]}" env LEAN_ABORT_ON_PANIC=1 "${BUILD[@]}" 2>&1 | while IFS= read -r line; do

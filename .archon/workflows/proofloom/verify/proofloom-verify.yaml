@@ -1,0 +1,88 @@
+name: proofloom-verify
+description: Verify a pinned Linux runtime and execute bounded small-proof or full-candidate checks.
+worktree: { enabled: false }
+mutates_checkout: false
+inputs:
+  backend:
+    default: native
+  runtime:
+    required: true
+  verifier:
+    default: tools/lean_verify.py
+  limactl:
+    default: limactl
+  lima_home:
+    default: ''
+  instance:
+    default: proofloom
+  profile:
+    default: smoke
+  output:
+    required: true
+  experiment:
+    default: ''
+  challenge:
+    default: ''
+  timeout:
+    default: '180'
+  memory_mib:
+    default: '4096'
+  jobs:
+    default: '1'
+returns: { node: verify, outcome: outcome }
+nodes:
+  - id: doctor
+    mutates_checkout: false
+    bash: |
+      python3 -B - <<'PYCODE'
+      import os, sys
+      sys.path.insert(0, 'tools')
+      import linux_backend
+      args = ['doctor', '--backend', os.environ['INPUTS_BACKEND'],
+              '--runtime', os.environ['INPUTS_RUNTIME'], '--verifier', os.environ['INPUTS_VERIFIER'],
+              '--limactl', os.environ['INPUTS_LIMACTL'], '--instance', os.environ['INPUTS_INSTANCE']]
+      if os.environ['INPUTS_LIMA_HOME']:
+          args += ['--lima-home', os.environ['INPUTS_LIMA_HOME']]
+      sys.exit(linux_backend.main(args))
+      PYCODE
+    output_format:
+      type: object
+      properties:
+        outcome: { type: string, enum: [ready] }
+        full_memory_ready: { type: boolean }
+      required: [outcome, full_memory_ready]
+      additionalProperties: true
+  - id: verify
+    depends_on: [doctor]
+    mutates_checkout: false
+    always_run: true
+    bash: |
+      python3 -B - <<'PYCODE'
+      import os, sys
+      sys.path.insert(0, 'tools')
+      import linux_backend
+      profile = os.environ['INPUTS_PROFILE']
+      if profile not in ('smoke', 'full'):
+          raise SystemExit('profile must be smoke or full')
+      args = ['smoke' if profile == 'smoke' else 'validate',
+              '--backend', os.environ['INPUTS_BACKEND'], '--runtime', os.environ['INPUTS_RUNTIME'],
+              '--verifier', os.environ['INPUTS_VERIFIER'], '--limactl', os.environ['INPUTS_LIMACTL'],
+              '--instance', os.environ['INPUTS_INSTANCE'], '--output', os.environ['INPUTS_OUTPUT'],
+              '--timeout', os.environ['INPUTS_TIMEOUT'], '--memory-mib', os.environ['INPUTS_MEMORY_MIB'],
+              '--jobs', os.environ['INPUTS_JOBS']]
+      if os.environ['INPUTS_LIMA_HOME']:
+          args += ['--lima-home', os.environ['INPUTS_LIMA_HOME']]
+      if profile == 'full':
+          args += ['--experiment', os.environ['INPUTS_EXPERIMENT'],
+                   '--challenge', os.environ['INPUTS_CHALLENGE']]
+      sys.exit(linux_backend.main(args))
+      PYCODE
+    output_format:
+      type: object
+      properties:
+        outcome: { type: string, enum: [smoke_passed, passed, partial_validation] }
+        proof_accepted: { type: boolean, enum: [false] }
+        smoke_profile: { type: boolean }
+        stages: { type: object }
+      required: [outcome, proof_accepted, smoke_profile, stages]
+      additionalProperties: true

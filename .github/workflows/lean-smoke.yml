@@ -1,0 +1,52 @@
+name: Lean verification smoke
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/lean_verify.py'
+      - 'tools/setup_lean.py'
+      - 'tools/linux_backend.py'
+      - 'tools/proofloom.py'
+      - 'tests/test_lean_verify.py'
+      - '.github/workflows/lean-smoke.yml'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Linux isolation and resource manager
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq bubblewrap zstd build-essential python3 dbus-user-session
+          sudo tee /etc/apparmor.d/proofloom-bwrap >/dev/null <<'PROFILE'
+          abi <abi/4.0>,
+          include <tunables/global>
+          profile proofloom-bwrap /usr/bin/bwrap flags=(unconfined) {
+            userns,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/proofloom-bwrap
+          sudo loginctl enable-linger "$(id -un)"
+          sudo systemctl start "user@$(id -u).service"
+          echo "XDG_RUNTIME_DIR=/run/user/$(id -u)" >> "$GITHUB_ENV"
+          echo "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus" >> "$GITHUB_ENV"
+      - name: Install fixed toolchains and exporter
+        run: python3 -B tools/setup_lean.py --root "$RUNNER_TEMP/proofloom-runtime"
+      - name: Check real proofs and rejection cases
+        run: |
+          python3 -B tools/lean_verify.py smoke \
+            --runtime "$RUNNER_TEMP/proofloom-runtime/runtime.json" \
+            --output "$RUNNER_TEMP/proofloom-smoke" \
+            --timeout 120 --memory-mib 2048 --jobs 2
+      - name: Preserve smoke results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lean-smoke-results
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/proofloom-smoke/*.json
+            ${{ runner.temp }}/proofloom-smoke/*.log

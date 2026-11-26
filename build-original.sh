@@ -10,6 +10,7 @@
 # code. Rerunning it on the same disk resumes where it stopped (Lake skips what is built).
 set -euo pipefail
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
 WORK="${1:-$HOME/rh-build}"
 O="$WORK/original"
 LOG="$WORK/build-original.log"
@@ -46,11 +47,11 @@ lake --version
 lake exe cache get
 
 # Lake writes a .setup.json per module listing its whole import closure: about 4.6 MB each here,
-# which filled a 200 GB disk after 20k modules. Lean reads it once when it starts on a module, so
-# delete it after that; this does not make Lake rebuild anything.
-( while true; do find "$O/.lake/build/ir" -name '*.setup.json' -mmin +2 -delete 2>/dev/null; sleep 60; done ) &
+# which filled a 200 GB disk after 20k modules. A newer module trace marks its setup as no
+# longer needed; age alone does not mean a running module has finished reading it.
+( while true; do python3 -B "$HERE/tools/cleanup_setup.py" --build-dir "$O/.lake/build"; sleep 60; done ) >> "$WORK/setup-cleanup.log" 2>&1 &
 CLEANER=$!
-trap 'kill $CLEANER 2>/dev/null' EXIT
+trap 'kill "$CLEANER" 2>/dev/null; wait "$CLEANER" 2>/dev/null || true' EXIT
 
 if ! bwrap --unshare-net --ro-bind / / true 2>/dev/null; then
   echo "bubblewrap can't create a sandbox here. Don't build without one unless the machine is" >&2

@@ -5,10 +5,11 @@
 ### Reproducible Lean proof experiments.
 
 [![Offline tooling](https://github.com/Jack-mi/proofloom/actions/workflows/tooling.yml/badge.svg)](https://github.com/Jack-mi/proofloom/actions/workflows/tooling.yml)
+[![Lean smoke](https://github.com/Jack-mi/proofloom/actions/workflows/lean-smoke.yml/badge.svg)](https://github.com/Jack-mi/proofloom/actions/workflows/lean-smoke.yml)
 [![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-3776AB)](#start-an-experiment)
 [![Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-596273)](LICENSE)
 
-[Start an experiment](#start-an-experiment) · [Read the guide](docs/EXPERIMENTS.md) · [Understand the evidence](#understand-the-evidence) · [Explore the research](#research-and-provenance)
+[Start an experiment](#start-an-experiment) · [Run Lean checks](docs/RUNTIME.md) · [Project audit](docs/PROJECT-AUDIT.md) · [Understand the evidence](#understand-the-evidence)
 
 </div>
 
@@ -66,7 +67,9 @@ The current archived reconstruction contains **172,315 Lean files**, **16,323,39
 
 **This candidate's proof checks have not run.** It has not been rebuilt with Lean, checked with Comparator, or verified by independent whole-proof kernels in this project. Each proof stage begins as `not_run`.
 
-The current tooling suite has **24 offline tests**, covering replay determinism, Unicode offsets, restored modules, import visibility, input and destination refusal, build failure propagation, stale evidence, partial-export retries, and interrupted record writes. These establish tooling behavior; they do not establish proof acceptance.
+The offline tooling suite covers replay determinism, Unicode offsets, restored modules, import visibility, input and destination refusal, build failure propagation, stale evidence, partial-export retries, interrupted record writes, runtime integrity and resource controls. These tests establish tooling behavior; they do not establish proof acceptance.
+
+The [Linux validation runtime](docs/RUNTIME.md) has also completed a real small-proof smoke: Lean 4.33.1 builds/exports, Lean 4.36.0 compares the statements and axioms, and its default/paranoid kernels check the proof. Wrong statements, `sorry`, extra axioms and malformed exports are rejected. This checks the verification chain, independently of the unverified RH candidate.
 
 After performing external validation, record the actual result:
 
@@ -89,6 +92,10 @@ archon workflow run proofloom-replay --workflow-source "$PWD" --no-worktree \
   --input "source=/path/to/clean-mirror" \
   --input "output=/path/to/new-experiment"
 ```
+
+`proofloom-verify` performs runtime preflight and bounded verification on native Linux
+or a named Lima guest. Its default profile is the small proof; full RH verification
+requires explicit inputs and a large memory budget. See [runtime setup](docs/RUNTIME.md#archon-orchestration).
 
 ## Contributor checks
 

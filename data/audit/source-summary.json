@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "method": "newline bytes; import and whitespace line classification; source text only",
+  "source_commit": "8b83d5e7b319ebc7b3be6e59ce3411ba2b09d116",
+  "original_tree_sha256": "68cbbe280af431c120b7385b3ae87676c4f93f7dbf34cb871f4a167b779665e2",
+  "candidate_tree_sha256": "422d4d7fac936e4427a1ad160cd996a5fe07cdb7afa07253bbb70f89c380ae1b",
+  "archive_digest": "3efd3b8464073f2c126c80f69760dc00b79fe45b35c021c042247c7d31938eac",
+  "proof_validity": "not established by this measurement",
+  "original": {
+    "total": {
+      "files": 175188,
+      "bytes": 1030533076,
+      "lines": 17374242,
+      "import_lines": 909823,
+      "blank_lines": 1842465,
+      "other_lines": 14621954,
+      "import_modules": 909823,
+      "duplicate_import_entries": 20058,
+      "umbrella_mathlib_imports": 155754
+    },
+    "libraries": {
+      "Development": {
+        "files": 141928,
+        "bytes": 767288236,
+        "lines": 12232663,
+        "import_lines": 806498,
+        "blank_lines": 1182625,
+        "other_lines": 10243540,
+        "import_modules": 806498,
+        "duplicate_import_entries": 20026,
+        "umbrella_mathlib_imports": 138437
+      },
+      "Formalism": {
+        "files": 18254,
+        "bytes": 164903481,
+        "lines": 3200748,
+        "import_lines": 51645,
+        "blank_lines": 410772,
+        "other_lines": 2738331,
+        "import_modules": 51645,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 6427
+      },
+      "GroundTheory": {
+        "files": 8507,
+        "bytes": 54564791,
+        "lines": 1119138,
+        "import_lines": 30513,
+        "other_lines": 932770,
+        "blank_lines": 155855,
+        "import_modules": 30513,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 8486
+      },
+      "ReciprocityTheory": {
+        "files": 3845,
+        "bytes": 28914051,
+        "lines": 563016,
+        "import_lines": 9697,
+        "blank_lines": 64844,
+        "other_lines": 488475,
+        "import_modules": 9697,
+        "duplicate_import_entries": 2,
+        "umbrella_mathlib_imports": 579
+      },
+      "CompanionTheory": {
+        "files": 2027,
+        "bytes": 11296366,
+        "lines": 194218,
+        "import_lines": 9008,
+        "blank_lines": 20236,
+        "other_lines": 164974,
+        "import_modules": 9008,
+        "duplicate_import_entries": 30,
+        "umbrella_mathlib_imports": 1553
+      },
+      "PositivityTheory": {
+        "files": 449,
+        "bytes": 3109326,
+        "lines": 55130,
+        "import_lines": 1631,
+        "other_lines": 46065,
+        "blank_lines": 7434,
+        "import_modules": 1631,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 103
+      },
+      "Lemmata": {
+        "files": 167,
+        "bytes": 452342,
+        "lines": 9232,
+        "import_lines": 808,
+        "blank_lines": 671,
+        "other_lines": 7753,
+        "import_modules": 808,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 167
+      },
+      "root": {
+        "files": 3,
+        "bytes": 2438,
+        "lines": 55,
+        "import_lines": 4,
+        "blank_lines": 18,
+        "other_lines": 33,
+        "import_modules": 4,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 2
+      },
+      "Supplements": {
+        "files": 3,
+        "bytes": 1195,
+        "lines": 22,
+        "import_lines": 9,
+        "blank_lines": 5,
+        "other_lines": 8,
+        "import_modules": 9,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 0
+      },
+      "BuildAid": {
+        "files": 5,
+        "bytes": 850,
+        "lines": 20,
+        "import_lines": 10,
+        "blank_lines": 5,
+        "other_lines": 5,
+        "import_modules": 10,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 0
+      }
+    }
+  },
+  "candidate": {
+    "total": {
+      "files": 172315,
+      "bytes": 968561834,
+      "lines": 16323398,
+      "import_lines": 892616,
+      "blank_lines": 1753715,
+      "other_lines": 13677067,
+      "import_modules": 892616,
+      "duplicate_import_entries": 0,
+      "umbrella_mathlib_imports": 134330
+    },
+    "libraries": {
+      "Development": {
+        "files": 141148,
+        "bytes": 739896299,
+        "lines": 11809933,
+        "import_lines": 792779,
+        "blank_lines": 1159113,
+        "other_lines": 9858041,
+        "import_modules": 792779,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 118258
+      },
+      "Formalism": {
+        "files": 17072,
+        "bytes": 140356088,
+        "lines": 2761811,
+        "import_lines": 50037,
+        "blank_lines": 366035,
+        "other_lines": 2345739,
+        "import_modules": 50037,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 5973
+      },
+      "GroundTheory": {
+        "files": 7737,
+        "bytes": 47232317,
+        "lines": 977065,
+        "import_lines": 28694,
+        "blank_lines": 140121,
+        "other_lines": 808250,
+        "import_modules": 28694,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 7733
+      },
+      "ReciprocityTheory": {
+        "files": 3735,
+        "bytes": 26954479,
+        "lines": 527450,
+        "import_lines": 9524,
+        "blank_lines": 61354,
+        "other_lines": 456572,
+        "import_modules": 9524,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 580
+      },
+      "CompanionTheory": {
+        "files": 2007,
+        "bytes": 10845606,
+        "lines": 187368,
+        "import_lines": 9114,
+        "blank_lines": 19600,
+        "other_lines": 158654,
+        "import_modules": 9114,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 1518
+      },
+      "PositivityTheory": {
+        "files": 444,
+        "bytes": 2831452,
+        "lines": 50703,
+        "import_lines": 1613,
+        "other_lines": 42273,
+        "blank_lines": 6817,
+        "import_modules": 1613,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 105
+      },
+      "Lemmata": {
+        "files": 161,
+        "bytes": 441110,
+        "lines": 8971,
+        "import_lines": 832,
+        "blank_lines": 647,
+        "other_lines": 7492,
+        "import_modules": 832,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 161
+      },
+      "root": {
+        "files": 3,
+        "bytes": 2438,
+        "lines": 55,
+        "import_lines": 4,
+        "blank_lines": 18,
+        "other_lines": 33,
+        "import_modules": 4,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 2
+      },
+      "Supplements": {
+        "files": 3,
+        "bytes": 1195,
+        "lines": 22,
+        "import_lines": 9,
+        "blank_lines": 5,
+        "other_lines": 8,
+        "import_modules": 9,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 0
+      },
+      "BuildAid": {
+        "files": 5,
+        "bytes": 850,
+        "lines": 20,
+        "import_lines": 10,
+        "blank_lines": 5,
+        "other_lines": 5,
+        "import_modules": 10,
+        "duplicate_import_entries": 0,
+        "umbrella_mathlib_imports": 0
+      }
+    }
+  }
+}

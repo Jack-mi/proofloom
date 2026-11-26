@@ -134,6 +134,11 @@ Relative receipt paths resolve from the recorder's cwd and are stored as absolut
 run for this archived candidate.** Offline tests, replay fingerprints and ARCHON probes
 are tooling evidence only.
 
+The executable [Linux runtime guide](RUNTIME.md) now supplies installation, runtime
+preflight, a real small-proof smoke and a separate resource-gated full-candidate
+entry point. Use it instead of wrapping the historical early-fork build script.
+The small smoke does not change this candidate's `not_run` proof stages.
+
 Prepare a suitable fresh Linux machine with enough disk/RAM, outside this host and
 repository. Follow the pinned mirror's README and verification notes to install Lean
 4.33.1, its pinned packages and `lean4export` v4.33.0 built with Lean 4.33.1. Prepare the
