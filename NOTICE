@@ -1,0 +1,10 @@
+Proofloom
+
+This distribution includes tooling, documentation, and archived research data
+originally published by Keith Adler in rh-trim under the Apache License, Version 2.0.
+Those materials retain their original license and source attribution. The experiment
+CLI, evidence handling, validation checks, workflow integration, and presentation
+have been modified for this distribution.
+
+The separately published Lean proof source is not distributed here. Its licensing
+and verification status are separate from the license for this repository.

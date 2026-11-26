@@ -1,0 +1,250 @@
+# Final: checking the claimed Lean proof of the Riemann Hypothesis
+
+> Historical research reference, originally published by Keith Adler. These measurements and checker results describe the original experiment; they do not verify the current Proofloom reconstruction. See [NOTICE](NOTICE) for attribution.
+
+> **The goal:** find the exact, smallest form of the proof, then see whether **tenet-hs**, a Lean kernel written from scratch in Haskell, accepts it, and whether it is faster than Lean's own kernel.
+
+
+
+⏹️ **Final: project wrapped up 2026-11-23 21:00 UTC.** Nothing here updates any more; the machines are deleted.
+
+| The proof | Levent Alpöge, working with Claude ([remark.pdf](https://alpo.ge/remark.pdf)), announced 2026-11-20 |
+|---|---|
+| Source | byte-exact mirror [Deicyde/riemann-hypothesis](https://github.com/Deicyde/riemann-hypothesis) at `8b83d5e`, Lean 4.33.1, Mathlib v4.33.1 |
+| Size | 175,187 files, about 17.5 million lines, 1 docstring |
+| The five theorems checked | `riemannHypothesis`, `riemannZeta_eq_zero_re`, `LFunction_ne_zero_of_half_lt_re`, `LFunction_eq_zero_re`, `LFunction_eq_zero_re_of_isPrimitive` |
+| Build it yourself | [docs/BUILD-ORIGINAL.md](docs/BUILD-ORIGINAL.md): one script, about 21 hours and $35 on one AWS Spot machine |
+
+## The plan
+
+```mermaid
+flowchart LR
+  build["1 Build the<br>original"] --> export["2 Exact<br>reduced form"] --> race["3 Haskell<br>vs Lean"] --> axioms["4 Axioms"] --> minify["5 Smallest<br>proof"] --> publish["6 Publish"]
+  classDef done fill:#1f6f43,stroke:#8fe3b0,color:#fff
+  classDef now fill:#2b3f8f,stroke:#8fa6ff,color:#fff,stroke-width:3px
+  classDef next fill:#2a2f3d,stroke:#5b6378,color:#c9cfdc
+  classDef stop fill:#7a2a2a,stroke:#ff9b9b,color:#fff
+  class build done
+  class export done
+  class race done
+  class axioms now
+  class minify now
+  class publish next
+```
+
+| | Step | What happens | Status | 💵 Cost |
+|:---:|---|---|---|---:|
+| **1** | **Build the original** | Compile all 175,187 proof files, exactly as published. **100.0%** so far. | ✅ done | $33.43 |
+| **2** | **Exact reduced form** | Export the five main theorems with `lean4export`. The export holds exactly what the proof uses, measured by Lean itself. | ✅ done | $3.90 |
+| **3** | **Haskell vs Lean** | Check that export with **tenet-hs** (Haskell) and with Lean's own kernel, timed, peak memory recorded. Tenet (C#), tenet-jvm, Lean's paranoid mode, nanoda, con-leche and con-ron run in the same race. | ✅ done | $70.85 |
+| **4** | **Axioms** | List exactly which axioms the five theorems rest on. | 🔵 **in progress** | not started |
+| **5** | **The smallest proof** | Cut the source to only what the export says the theorems use, merge repeated theorems, rebuild, and check it with Tenet, then the other kernels. **Building in automatic repair rounds; live numbers in the counter at the top of the README.** [Details](docs/MINIFY.md) | 🔵 **in progress** | not started |
+| **6** | **Publish** | Post the times, the verdicts and the exact sizes here. | ⏳ waiting | not started |
+
+**Total so far: $108.18**, at the Spot rate of about $1.56 an hour. The disk (now 600 GB) and its snapshots add about $2 a day.
+
+Steps 2 to 4 are queued on the machine and start by themselves when the build succeeds. Step 5 follows from their output.
+
+## Step 2 result: the exact reduced form
+
+Exported from the unmodified build with `lean4export` 3.1.0 (Lean 4.33.1), in the no-network sandbox, starting from the five main theorems. This is everything the proof uses, measured by Lean itself, including the parts of Mathlib and Lean's core library it needs.
+
+| | |
+|---|---|
+| Declarations | **1,468,414**: 1,246,109 theorems, 214,238 definitions, 7,969 inductive types, 91 opaque, 4 quotient |
+| Axioms | **3, all Lean's standard ones:** `propext`, `Quot.sound`, `Classical.choice` |
+| Size | 61.6 GB of NDJSON, 1,065,214,329 expressions, 14,065,146 names |
+| Export time | 2 h 17 m, 163 GB peak memory, exit 0 |
+| sha256 | `4301ce4828d397c728e87f3e6a1251aa42abe5e12809bb9e0b73cc3d33072e7e` |
+
+## Step 3: the kernel race, Haskell vs Lean
+
+Each checker reads the same 61.6 GB export and checks every declaration from scratch. Lean's kernel started alone at 23:22 UTC; at 00:38 the other seven were started alongside it, because each uses one core (Tenet uses many) and the machine has 192 vCPUs, so running them one at a time left it idle at the same hourly cost. Each runs in its own memory-capped sandbox. Running together can slow each a little (shared memory bandwidth); if two kernels finish close together, they will be re-timed alone.
+
+| # | Checker | What it is | Verdict | Wall time | CPU | Peak memory |
+|:---:|---|---|:---:|---:|---:|---:|
+| 1 | Lean's kernel | Lean 4.36's own type checker, the reference | ⏳ queued | | | |
+| 2 | Lean paranoid | the same kernel with extra checks | ⏹ stopped at 05:37 UTC by an AWS Spot interruption after about 5 h; no verdict | | | |
+| 3 | nanoda | independent kernel in Rust | ⏹ stopped at 05:37 UTC by an AWS Spot interruption after about 5 h; no verdict | | | |
+| 4 | con-leche | independent checker, formally verified mode | ⚪ declined: no support for reflexive inductive types | 6:07.52 | 328 s | 37.1 GB |
+| 5 | con-ron | independent checker, formally verified mode | ⚪ declined: no support for reflexive inductive types | 5:14.61 | 248 s | 53.1 GB |
+| 6 | con-leche, trusted mode | every check the official kernel does, outside its formal theorem | ⚪ declined: no support for reflexive inductive types | 6:48.95 | 356 s | 37.1 GB |
+| 7 | con-ron, trusted mode | the same, for con-ron | ⚪ declined: no support for reflexive inductive types | 4:45.75 | 253 s | 53.1 GB |
+| 8 | **Tenet** | written from scratch in C# ([repo](https://github.com/keithadler/tenet)) | ✅ accepts | 1:00:27 | 252,006 s | 236.1 GB |
+| 9 | **tenet-hs** | written from scratch in **Haskell** ([repo](https://github.com/keithadler/tenet-hs)) | ⏹ stopped at 05:37 UTC by an AWS Spot interruption after about 5 h; no verdict | | | |
+| 10 | **tenet-jvm** | written from scratch for the JVM ([repo](https://github.com/keithadler/tenet-jvm)) | ⏸ stopped: stuck about 90 min reading one declaration while memory grew; not a verdict | 2:02:16 | 15,818 s | 257.7 GB |
+
+## Kernel race on the original proof: second machine, live
+
+A second AWS machine (`r7a.12xlarge`, 48 vCPU, 369 GB) checks the same 61.6 GB export of the original proof. Wall time is real time on a shared machine.
+
+| Checker | Verdict | Wall time | CPU | Peak memory |
+|---|:---:|---:|---:|---:|
+| tenet-jvm, memory rework | ❌ out of memory | 49:13.83 | 28,276 s | 123.2 GB |
+| nanoda, 32 threads | ✅ accepts | 2:42:37 | 31,404 s | 79.4 GB |
+| tenet-jvm, diagnostics run | ⏹ stopped by hand | 39:32.67 | 15,124 s | 123.1 GB |
+| tenet-jvm (fixed) | ✅ accepts | 6:05:15 | 26,202 s | 96.4 GB |
+| Lean's kernel | 🔵 checking: whole file loaded, checking (no progress readout) | 4h 48m so far | | 67 GB now |
+| Lean paranoid | 🔵 checking: whole file loaded, checking (no progress readout) | 4h 48m so far | | 83 GB now |
+| tenet-hs (Haskell) | 🔵 checking: 43.7% through the file | 4h 48m so far | | 67 GB now |
+
+## Step 5: building the smallest proof
+
+The minified source, round 71 (15,954,961 lines in 172,500 files, down from 17,374,242 lines in 175,188: see [docs/MINIFY.md](docs/MINIFY.md)) is compiling on the same machine, network cut off, in automatic repair rounds since 06:19:37 UTC on 2026-11-22. When a round builds clean, its export is checked by Tenet first, then the other kernels.
+
+🔵 **compiling** · `█████████████████████████████████████ ░░` **22,452** of 24,246 Lake jobs (92.6%) · ❌ errors: **76**
+
+| Round | Started (UTC) | Lines | Files | Errors | What changed |
+|---|---|---:|---:|---:|---|
+| round 1 | 06:19 | 13,850,849 | 30,698 | 5 | exact cut from the export; stopped: kept instances lost their dependencies |
+| round 2 | 06:27 | 15,445,263 | 32,034 | 298 | keep what kept instances depend on; stopped: tactics name unused lemmas |
+| round 3 | 06:36 | 15,565,484 | 172,254 | 171 | keep everything kept code mentions; built unmerged |
+| round 4 | 06:42 | 15,567,987 | 172,254 | 2114 | restore names the parser misread; automatic repair from here |
+| round 5 | 07:41 | 15,588,885 | 172,263 | 1024 | automatic repair of the previous round |
+| round 6 | 08:07 | 15,598,652 | 172,271 | 538 | automatic repair of the previous round |
+| round 7 | 08:32 | 15,602,807 | 172,276 | 828 | automatic repair of the previous round |
+| round 8 | 08:57 | 15,610,005 | 172,278 | 492 | automatic repair of the previous round |
+| round 9 | 09:22 | 15,611,871 | 172,280 | 1859 | automatic repair of the previous round |
+| round 10 | 09:51 | 15,620,035 | 172,286 | 528 | automatic repair of the previous round |
+| round 11 | 10:17 | 15,621,208 | 172,286 | 473 | automatic repair of the previous round |
+| round 12 | 10:46 | 15,622,082 | 172,286 | 1673 | automatic repair of the previous round |
+| round 13 | 11:37 | 15,634,324 | 172,295 | 1098 | automatic repair of the previous round |
+| round 14 | 12:03 | 15,640,297 | 172,297 | 528 | automatic repair of the previous round |
+| round 15 | 12:28 | 15,641,226 | 172,300 | 834 | automatic repair of the previous round |
+| round 16 | 12:54 | 15,647,857 | 172,301 | 766 | automatic repair of the previous round |
+| round 17 | 13:22 | 15,651,044 | 172,302 | 744 | automatic repair of the previous round |
+| round 18 | 13:48 | 15,653,262 | 172,307 | 816 | automatic repair of the previous round |
+| round 19 | 14:13 | 15,655,544 | 172,309 | 759 | automatic repair of the previous round |
+| round 20 | 14:38 | 15,657,131 | 172,310 | 579 | automatic repair of the previous round |
+| round 21 | 14:58 | 15,657,629 | 172,310 | 652 | automatic repair of the previous round |
+| round 22 | 15:17 | 15,658,086 | 172,310 | 469 | automatic repair of the previous round |
+| round 23 | 15:37 | 15,658,264 | 172,311 | 881 | automatic repair of the previous round |
+| round 24 | 16:12 | 15,658,528 | 172,311 | 465 | automatic repair of the previous round |
+| round 25 | 16:32 | 15,658,534 | 172,311 | 9 | automatic repair of the previous round |
+| round 25 | 16:38 | 15,878,294 | 172,315 | 122 | automatic repair of the previous round |
+| round 26 | 17:04 | 15,879,296 | 172,315 | 149 | automatic repair of the previous round |
+| round 27 | 17:30 | 15,879,883 | 172,315 | 436 | automatic repair of the previous round |
+| round 28 | 17:56 | 15,882,128 | 172,316 | 607 | automatic repair of the previous round |
+| round 29 | 18:22 | 15,885,283 | 172,318 | 527 | automatic repair of the previous round |
+| round 30 | 18:48 | 15,888,477 | 172,325 | 397 | automatic repair of the previous round |
+| round 31 | 19:15 | 15,892,455 | 172,332 | 1003 | automatic repair of the previous round |
+| round 32 | 20:05 | 15,895,708 | 172,338 | 650 | automatic repair of the previous round |
+| round 33 | 20:28 | 15,897,471 | 172,338 | 567 | automatic repair of the previous round |
+| round 34 | 20:52 | 15,897,742 | 172,339 | 578 | automatic repair of the previous round |
+| round 35 | 21:16 | 15,898,071 | 172,339 | 572 | automatic repair of the previous round |
+| round 36 | 21:40 | 15,898,418 | 172,339 | 560 | automatic repair of the previous round |
+| round 37 | 22:03 | 15,898,437 | 172,339 | 555 | automatic repair of the previous round |
+| round 38 | 22:27 | 15,898,437 | 172,339 | 555 | automatic repair of the previous round |
+| round 39 | 22:52 | 15,898,437 | 172,339 | 555 | automatic repair of the previous round |
+| round 40 | 23:15 | 15,898,437 | 172,339 | 366 | automatic repair of the previous round |
+| round 41 | 23:32 | 15,898,793 | 172,351 | 425 | automatic repair of the previous round |
+| round 42 | 23:55 | 15,898,871 | 172,352 | 410 | automatic repair of the previous round |
+| round 43 | 00:18 | 15,898,898 | 172,352 | 306 | automatic repair of the previous round |
+| round 44 | 00:52 | 15,898,942 | 172,355 | 306 | automatic repair of the previous round |
+| round 45 | 01:16 | 15,903,619 | 172,428 | 308 | automatic repair of the previous round |
+| round 46 | 01:42 | 15,918,086 | 172,441 | 134 | automatic repair of the previous round |
+| round 47 | 02:08 | 15,919,648 | 172,442 | 210 | automatic repair of the previous round |
+| round 48 | 02:38 | 15,922,702 | 172,452 | 20 | automatic repair of the previous round |
+| round 49 | 03:09 | 15,922,706 | 172,452 | 141 | automatic repair of the previous round |
+| round 50 | 03:35 | 15,924,546 | 172,454 | 242 | automatic repair of the previous round |
+| round 51 | 04:00 | 15,928,099 | 172,457 | 365 | automatic repair of the previous round |
+| round 52 | 04:26 | 15,931,001 | 172,461 | 424 | automatic repair of the previous round |
+| round 53 | 04:52 | 15,934,497 | 172,465 | 37 | automatic repair of the previous round |
+| round 54 | 05:18 | 15,935,015 | 172,470 | 57 | automatic repair of the previous round |
+| round 55 | 05:49 | 15,938,878 | 172,478 | 184 | automatic repair of the previous round |
+| round 56 | 06:15 | 15,943,094 | 172,485 | 52 | automatic repair of the previous round |
+| round 57 | 06:41 | 15,943,404 | 172,485 | 58 | automatic repair of the previous round |
+| round 58 | 07:07 | 15,943,470 | 172,485 | 164 | automatic repair of the previous round |
+| round 59 | 07:33 | 15,945,606 | 172,487 | 93 | automatic repair of the previous round |
+| round 60 | 07:59 | 15,946,155 | 172,489 | 220 | automatic repair of the previous round |
+| round 61 | 08:26 | 15,947,011 | 172,492 | 62 | automatic repair of the previous round |
+| round 62 | 08:57 | 15,947,199 | 172,492 | 20 | automatic repair of the previous round |
+| round 63 | 09:27 | 15,947,897 | 172,493 | 80 | automatic repair of the previous round |
+| round 66 | 17:18 | 15,948,571 | 172,493 | 17 | automatic repair of the previous round |
+| round 67 | 18:02 | 15,948,662 | 172,493 | 93 | automatic repair of the previous round |
+| round 68 | 18:29 | 15,949,978 | 172,494 | 68 | automatic repair of the previous round |
+| round 69 | 18:55 | 15,951,324 | 172,497 | 21 | automatic repair of the previous round |
+| round 71 | 20:20 | 15,954,961 | 172,500 | 62 | automatic repair of the previous round |
+
+Lake counts jobs, not files: the job total includes the already-built Mathlib and grows as Lake discovers work. An error here most likely means a declaration needed only while building a proof was cut; it goes back and the build resumes.
+
+## Research on the export
+
+Six tests that only an exact export plus several independent kernels make possible. They run on the same machine, alongside the race, at no extra cost. None of them checks the mathematics: they are about the proof as an artifact, and about the checkers.
+
+| # | Test | What it shows | Status |
+|:---:|---|---|---|
+| 1 | **Mutation test the kernels** | Plant one fault at a time in a proof term and give every mutant to all six kernels. All should reject; any disagreement between kernels is a finding. | 🟢 **431 faults planted in 8 real slices of the proof (1.1M to 7.2M lines each), 2,583 kernel checks: all 6 kernels accepted every clean slice and rejected every fault.** No disagreements. (The last slice was cut short by a Spot interruption.) |
+| 2 | **Where the checking time goes** | The declarations that take most of the kernel time, from Tenet's per-declaration report. | 🟢 **0.3% of the declarations take half of the checking.** In Tenet's run, 4,335 declarations (of 1,468,414) took over 5 s each and add up to 128,568 CPU-seconds, 51% of its 252,006. 494 took over a minute, 22 over five minutes; the slowest, `CrystallineSemistableComparison.fc_range_le`, took 687 s. By area, p-adic Hodge theory dominates: `CrystallineSemistableComparison` 15% of the slow time and `GroundTheory.PAdicHodge` another 4%, then `GroundTheory.Arith` 7% and the étale cohomology parts. Reading the 61.6 GB file took 3,075 s of Tenet's 3,459 s wall time, overlapped with checking. |
+| 3 | **Duplicate theorems** | Theorems proved more than once with an identical statement, project vs Mathlib. | 🟢 **96,761 hand-named theorems repeat another theorem's statement exactly** (69,144 groups; equal up to bound-variable names; Lean's auto-generated helpers left out). Many are two proofs of the same named `Statement` proposition. For scale: 1,075,024 theorems are the project's own. |
+| 4 | **The trusted base** | What a person must read to trust the five STATEMENTS, as opposed to the 1.47M declarations of proof. | 🟢 first result: `riemannHypothesis` is stated with Mathlib's own definition only. `LFunction_eq_zero_re_of_isPrimitive` goes through a project-defined wrapper, `PrimitiveDirichletLZerosOnLine`, the kind of place a wrong definition could hide (Comparator's statement check covers it). Full count: the five statements rest on **4,915 declarations**, only **5** of them from the project (four statement wrappers and one helper); the other 4,910 are Mathlib and Lean. |
+| 5 | **The spine and the hubs** | The chain of declarations every dependency path must pass through (a dominator tree), and the most-used lemmas. | 🟢 **99.35% of the proof sits under one claim, `allChi`** (`UpperTheory.FinalTheorems.everyCharacter`). Below it: `everyCharacter_of_row` owns 77%, `every_character_of_literature_of_vWin` 67%, `every_character_of_theta_integrals_local_matching` 43%: the same chain traced by hand earlier, now measured. Top hub: `Formalism.BasicNotions.D7`, used directly by 155,523 declarations. Of the 1,468,414 declarations, 1,258,876 (86%) are the project's, holding 97% of the expression nodes. |
+| 6 | **Haskell vs Lean per slice** | tenet-hs and Lean's kernel timed on the same slices, matched by size, for a fair speed comparison. | 🔵 first slice, clean file, wall time with 24 checks running at once (so rough): nanoda 7.4 s, Tenet 9.8 s, Lean 11.4 s, Lean paranoid 14.8 s, **tenet-hs 16.8 s**, tenet-jvm 17.1 s. Fair timings, one at a time on an idle machine, come after the race. |
+
+## Step 1: the build ✅ done
+
+`████████████████████████████████████████`  **175,187** of 175,187 proof files · `Build completed successfully (183893 jobs)`
+
+| ⏱ Compiling time | 🏁 Finished (UTC) | 💵 Build cost | 💵 Spent so far | ❌ Errors | 🚫 sorry |
+|:---:|:---:|:---:|:---:|:---:|:---:|
+| about 21 h | 2026-11-21 20:52 | $33.43 | $108.18 | 0 | 0 |
+
+Spent so far keeps counting while the machine runs steps 2 to 4.
+
+![Proof files compiled over time](docs/status/chart-20261123-2047.svg)
+
+<details><summary><b>By library</b></summary>
+
+| Library | Built | Progress |
+|---|---:|---|
+| `Development` | 141,928 / 141,928 | `████████████████████` 100% |
+| `Formalism` | 18,254 / 18,254 | `████████████████████` 100% |
+| `GroundTheory` | 8,507 / 8,507 | `████████████████████` 100% |
+| `ReciprocityTheory` | 3,845 / 3,845 | `████████████████████` 100% |
+| `CompanionTheory` | 2,027 / 2,027 | `████████████████████` 100% |
+| `PositivityTheory` | 449 / 449 | `████████████████████` 100% |
+| `Lemmata` | 167 / 167 | `████████████████████` 100% |
+
+</details>
+
+<details><summary><b>The machine</b></summary>
+
+| | |
+|---|---|
+| Instance | AWS `m6a.48xlarge` Spot, Ohio, about $1.56/hour |
+| CPUs | 192 vCPUs (96 cores), load 0, 133 Lean processes running |
+| Memory | 5 GB used of 776 GB |
+| Disk | 208 GB free of 623 GB |
+| Sandbox | bubblewrap: no network, everything read-only except the build folder |
+| Safety net | the disk survives termination, and is snapshotted every 2 hours |
+
+</details>
+
+<details><summary><b>Log: what went wrong and how it was handled</b></summary>
+
+- **2026-11-20 23:29 UTC:** started compiling the original proof, after the source-level reduction turned out to drop real dependencies ([why](README.md)).
+- **00:39 to 00:49:** disk full. Lake's per-module `.setup.json` files reached 92 GB (about 4.6 MB each, listing every import). They are now deleted as modules finish; nothing built was lost.
+- **01:45:** status counter fixed. Lake re-prints warnings for modules already built, which the old counter counted twice.
+- **02:06 to 02:12:** AWS reclaimed the Spot machine. It stopped with its disk kept, and came back on its own when capacity returned; the build resumed with nothing lost. Everything now restarts by itself after any interruption, and progress is counted from compiled files on disk.
+- **2026-11-21 09:21 to 09:24:** a second Spot interruption. The machine resumed the build by itself within a minute of coming back.
+- **10:25 to 10:34:** a third Spot interruption, with no capacity for 9 minutes. Resumed by itself again; nothing lost.
+- **13:04 to 13:32:** a fourth Spot interruption, 28 minutes this time. Resumed by itself again; nothing lost.
+- **20:52:38: build finished.** `Build completed successfully (183893 jobs)`: all 175,187 proof files, 0 errors, no `sorry`, 6 h 56 m of compiling since the last restart. The export (step 2) started at 20:53.
+- **21:30:** the export file was growing toward the disk's limit (51 GB free, about 0.66 GB a minute). The disk was grown from 200 GB to 600 GB while running; nothing stopped.
+- **23:10: export finished.** 1,468,414 declarations, 61.6 GB, exit 0, in 2 h 17 m. Only Lean's three standard axioms appear.
+- **23:22: the kernel race started** with Lean's kernel.
+- **00:43 and 00:44:** con-ron and con-leche **declined** in their default, formally verified mode: the proof uses a reflexive inductive type (`FunctorialResolution.EmbeddedResolution.PrincipalizationCertificate`), which their verified model doesn't cover. That is not a rejection of the proof. Both were restarted at 00:45 in trusted mode, which runs every check the official kernel does.
+- **00:50 and 00:52:** both declined again in trusted mode, at the same type. So con-leche and con-ron don't support reflexive inductive types in either mode; they give no verdict on this proof.
+- **03:08:** Tenet stopped after checking **1,468,255 of 1,468,414 declarations, 0 failed**: it ran out of memory on the last 159. The cause was the race setup, not Tenet or the proof: its sandbox was capped at 120 GB, and .NET limits its heap to 75% of that (peak 89.7 GB). Rerun from 03:16 with a 320 GB cap.
+- **05:37 to 05:46:** a fifth Spot interruption. It stopped the four checkers still running: Lean's kernel (about 6 h in), paranoid mode, nanoda and tenet-hs, with no verdicts. Everything on disk was kept. The race is not restarted for now; the machine now builds the minified proof, which Tenet will check, and the other kernels after that.
+- **2026-11-23 07:02: tenet-jvm accepts the whole proof** (fixed build, branch `jvm-compact-memory` 53cf8a4): all declarations verified, 1,484,729 constants and 7,969 inductive blocks, axioms only `propext`, `Quot.sound`, `Classical.choice`; 6 h 05 m wall, 26,202 CPU-seconds, 96.4 GB peak. The fix: cache definitional-equality failures, which turned one theorem from a 104 GB hang into 373 ms.
+- **2026-11-22 23:28: nanoda accepts the whole proof** on the second machine: exit 0, 2 h 42 m on 32 threads, 79.4 GB peak (sharing the machine with four other kernels).
+- **22:31:** a memory-reworked tenet-jvm (branch `jvm-compact-memory`) ran out of memory at its 120 GB cap after 49 min, at the same declaration as before (`...FormalGroupSystem.Pf.ea_card_img._simp_1_1`): one pathological declaration, not general footprint. Being narrowed down.
+- **2026-11-22 20:46:** a second machine (`r7a.12xlarge`, 48 vCPU, 369 GB, Spot), made from the 20:19 snapshot, restarts the race for the four kernels the interruptions stopped: Lean's kernel, paranoid mode, nanoda (now with 32 threads) and tenet-hs, all four in parallel on the same export. The first machine keeps building the smallest proof.
+- **04:16:55: Tenet accepts the whole proof.** All 1,468,414 declarations checked, 0 failed, exit 0, in 1 h 0 m 27 s (peak 236 GB). Tenet is an independent Lean kernel written from scratch in C#, and the first of the from-scratch kernels to finish.
+- **03:17:** tenet-jvm stopped by hand. It had been stuck for about 90 minutes reading one declaration (`Formalism.MainNotions.FormalGroupSystem.Pf.ea_card_img._simp_1_1`) while its memory grew to 258 GB. Recorded as stalled, not as a verdict; to be reproduced on a small export of that lemma.
+- **00:38:** switched to a parallel race. Each checker uses one core, so the other seven now run alongside Lean's kernel instead of after it, each in its own memory-capped sandbox. Same hourly cost, results hours sooner.
+
+</details>
+
+Rate and finish come from the last hour of the timestamped build log. Build it yourself: [docs/BUILD-ORIGINAL.md](docs/BUILD-ORIGINAL.md).

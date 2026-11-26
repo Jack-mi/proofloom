@@ -1,0 +1,84 @@
+name: proofloom-replay
+description: Inventory and reconstruct an archived text-only candidate; record no proof acceptance.
+worktree: { enabled: false }
+mutates_checkout: false
+inputs:
+  source:
+    required: true
+  output:
+    required: true
+  archive_dir:
+    default: ''
+returns: { node: report, outcome: outcome }
+nodes:
+  - id: inventory
+    mutates_checkout: false
+    bash: |
+      python3 -B - <<'PYCODE'
+      import json, os, sys
+      sys.path.insert(0, 'tools')
+      import proofloom as rh
+      value = rh.inventory(os.environ['INPUTS_ARCHIVE_DIR'] or rh.ARCHIVE)
+      print(json.dumps({'digest': value['digest'], 'counts': value['counts']}))
+      PYCODE
+    output_format:
+      type: object
+      properties:
+        digest: { type: string }
+        counts: { type: object }
+      required: [digest, counts]
+      additionalProperties: false
+  - id: replay
+    depends_on: [inventory]
+    mutates_checkout: false
+    bash: |
+      python3 -B - <<'PYCODE'
+      import os, sys
+      sys.path.insert(0, 'tools')
+      import proofloom as rh
+      argv = ['replay', '--source', os.environ['INPUTS_SOURCE'], '--output', os.environ['INPUTS_OUTPUT']]
+      if os.environ['INPUTS_ARCHIVE_DIR']:
+          argv += ['--archive-dir', os.environ['INPUTS_ARCHIVE_DIR']]
+      sys.exit(rh.main(argv))
+      PYCODE
+    output_format:
+      type: object
+      properties:
+        outcome: { type: string, enum: [replayed_unverified] }
+        proof_accepted: { type: boolean, enum: [false] }
+        candidate_id: { type: string }
+        candidate: { type: object }
+      required: [outcome, proof_accepted, candidate_id, candidate]
+      additionalProperties: false
+  - id: report
+    depends_on: [replay]
+    always_run: true
+    mutates_checkout: false
+    bash: |
+      python3 -B - <<'PYCODE'
+      import json, os, sys
+      sys.path.insert(0, 'tools')
+      import proofloom as rh
+      value = rh.report(os.environ['INPUTS_OUTPUT'])
+      print(json.dumps({key: value[key] for key in ('outcome', 'proof_accepted', 'candidate_id', 'stages', 'stale_reasons')}))
+      PYCODE
+    output_format:
+      type: object
+      properties:
+        outcome: { type: string, enum: [replayed_unverified, stale] }
+        proof_accepted: { type: boolean, enum: [false] }
+        candidate_id: { type: string }
+        stages:
+          type: object
+          properties:
+            build: { type: string, enum: [not_run, passed, failed, interrupted, unsupported, stale] }
+            export: { type: string, enum: [not_run, passed, failed, interrupted, unsupported, stale] }
+            comparator: { type: string, enum: [not_run, passed, failed, interrupted, unsupported, stale] }
+            checkers: { type: object }
+          required: [build, export, comparator, checkers]
+          additionalProperties: false
+        stale_reasons:
+          type: array
+          items: { type: string }
+      required: [outcome, proof_accepted, candidate_id, stages, stale_reasons]
+      additionalProperties: false
