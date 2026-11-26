@@ -56,9 +56,21 @@ large cosmetic savings, not a shorter mathematical proof.
 | Statement/axiom comparison | Clean Challenge, trusted configuration, separate judge toolchain | Small valid proof accepted; mismatch, `sorry` and extra axiom rejected |
 | Kernel checking | Default Lean and available paranoid kernel; strict original full profile | Small real kernels pass; full checker compatibility remains to be assessed |
 | Evidence | Actual execution logs and artifacts plus separate operator-receipt import | Profile and candidate identity remain explicit; smoke is never RH evidence |
-| ARCHON | Replay workflow and deterministic doctor/verify workflow, native Linux or Lima bridge | Workflow definitions validate; no automatic resource purchase |
-| CI | Offline tool tests plus a real Lean smoke workflow | Real smoke is separate from the Python/Shell/C checks |
+| ARCHON | Replay workflow and deterministic doctor/verify workflow, native Linux or Lima bridge | Clean-checkout Lima smoke completed with `smoke_passed`; full profile not run |
+| CI | Offline tool tests plus a real Lean smoke workflow | Both workflows passed on the verified code commit; real smoke remains separate from the offline checks |
 | Optimization loop | Existing historical tools and measured research candidates | Search, bounded repair and best-candidate selection are not yet integrated |
+
+The verified code commit is `8a7cf6bbe59ef31446b12e6763e6f29204f4a510`.
+Its [offline CI run](https://github.com/Jack-mi/proofloom/actions/runs/45861958210)
+passed on Python 3.9 and 3.14, and its
+[real Lean smoke CI run](https://github.com/Jack-mi/proofloom/actions/runs/45861958065)
+passed on Ubuntu 24.04. The offline suite contains 57 tests plus Python, Shell
+and C syntax checks. The clean local ARCHON run
+`8d01f6d4f7cae893722c43458034f389` completed both doctor and verify nodes, with
+15 real execution stages, a valid proof accepted by both kernels and all four
+negative cases rejected. Its checkout stayed at the verified commit throughout.
+These results establish the runtime and orchestration path; they do not establish
+the RH candidate's validity.
 
 ## Improvements made on this path
 
